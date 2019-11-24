@@ -13,12 +13,11 @@ const df = require("durable-functions");
 
 module.exports = df.orchestrator(function* (context) {
     const outputs = [];
-    console.log('hi')
     // Replace "Hello" with the name of your Durable Activity Function.
     outputs.push(yield context.df.callActivity("Hello", "Tokyo"));
     outputs.push(yield context.df.callActivity("Hello", "Seattle"));
     outputs.push(yield context.df.callActivity("Hello", "London"));
-    console.log(outputs);
+    yield context.df.createTimer(new Date('2019-11-23'));
     // returns ["Hello Tokyo!", "Hello Seattle!", "Hello London!"]
     return outputs;
 });

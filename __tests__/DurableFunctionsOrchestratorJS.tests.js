@@ -1,28 +1,20 @@
+const mockDurableFunctions = require('../mockDurableFunctions');
 const func = require('../DurableFunctionsOrchestratorJS');
+jest.mock('durable-functions', () => mockDurableFunctions);
 
-jest.mock('durable-functions', () => {
-    let _lastValue;
-    const context = {
-        df: {
-            callActivity: jest.fn(function (functionName, input) {
-                _lastValue = input;
-            })
-        }
-    };
-    return {
-        orchestrator: function(fn) {
-            return function(ctx) {
-                const f = fn(context);
-                let gen;
-                do {
-                    // playback last value
-                    gen = f.next(_lastValue);
-                } while(!gen.done);
-            };
-        }
-    };
-});
+test('DurableFunctionsOrchestratorJS returns three cities', function () {
+    const orchestrator = func.createMockInstance();
+    orchestrator
+        .addCall('callActivity', jest.fn().mockReturnValue('Hello Tokyo'))
+        .addCall('callActivity', jest.fn().mockReturnValue('Hello Seattle'))
+        .addCall('callActivity', jest.fn().mockReturnValue('Hello London'))
+        .addCall('createTimer', jest.fn());
 
-test('run func', function () {
-    func();
+    const {calls, result} = orchestrator.run();
+
+    const [tokyo, seattle, london] = calls;
+    expect(tokyo).toHaveBeenCalledWith('Hello', 'Tokyo');
+    expect(seattle).toHaveBeenCalledWith('Hello', 'Seattle');
+    expect(london).toHaveBeenCalledWith('Hello', 'London');
+    expect(result).toEqual([ 'Hello Tokyo', 'Hello Seattle', 'Hello London' ]);
 });

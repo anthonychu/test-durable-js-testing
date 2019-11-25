@@ -1,7 +1,6 @@
 const func = require('../HttpTrigger');
 
 describe('HttpTrigger', function() {
-
     test('called with a query string should say hello', async function() {
         const context = createMockContext();
         const req = createMockRequest();

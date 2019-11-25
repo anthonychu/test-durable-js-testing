@@ -10,47 +10,40 @@ const mockOrchestrator = {
                 const firstCall = {
                     callFunction() { }
                 };
+                const createCallHandler = function (callFunctionName) {
+                    return function () {
+                        currentCall.arguments = arguments;
+                        currentCall.functionName = callFunctionName;
+                    };
+                };
+                const addCallHandler = function (_this, propName, functionName) {
+                    _this[propName] = function (callFunction) {
+                        calls.push({
+                            functionName,
+                            callFunction
+                        });
+                        return _this;
+                    };
+                };
                 const context = {
                     df: {
-                        callActivity() {
-                            currentCall.arguments = arguments;
-                            currentCall.functionName = 'callActivity';
-                        },
-                        callActivityWithRetry() {
-                            currentCall.arguments = arguments;
-                            currentCall.functionName = 'callActivityWithRetry';
-                        },
-                        callEntity() {
-                            currentCall.arguments = arguments;
-                            currentCall.functionName = 'callEntity';
-                        },
-                        callSubOrchestrator() {
-                            currentCall.arguments = arguments;
-                            currentCall.functionName = 'callSubOrchestrator';
-                        },
-                        callSubOrchestratorWithRetry() {
-                            currentCall.arguments = arguments;
-                            currentCall.functionName = 'callSubOrchestratorWithRetry';
-                        },
-                        callHttp() {
-                            currentCall.arguments = arguments;
-                            currentCall.functionName = 'callHttp';
-                        },
-                        continueAsNew() {
-                            currentCall.arguments = arguments;
-                            currentCall.functionName = 'continueAsNew';
-                        },
-                        createTimer() {
-                            currentCall.arguments = arguments;
-                            currentCall.functionName = 'createTimer';
-                        },
-                        waitForExternalEvent() {
-                            currentCall.arguments = arguments;
-                            currentCall.functionName = 'waitForExternalEvent';
+                        callActivity: createCallHandler('callActivity'),
+                        callActivityWithRetry: createCallHandler('callActivityWithRetry'),
+                        callEntity: createCallHandler('callEntity'),
+                        callSubOrchestrator: createCallHandler('callSubOrchestrator'),
+                        callSubOrchestratorWithRetry: createCallHandler('callSubOrchestratorWithRetry'),
+                        callHttp: createCallHandler('callHttp'),
+                        continueAsNew: createCallHandler('continueAsNew'),
+                        createTimer: createCallHandler('createTimer'),
+                        waitForExternalEvent: createCallHandler('waitForExternalEvent'),
+                        Task: {
+                            all: createCallHandler('Task.all'),
+                            any: createCallHandler('Task.any')
                         }
                     }
                 };
-                return {
+
+                const mockOrchestratorInstance = {
                     addCall(functionName, callFunction) {
                         calls.push({
                             functionName,
@@ -60,22 +53,37 @@ const mockOrchestrator = {
                     },
                     run() {
                         const generator = fn(context);
-                        let result;
+                        let lastResult;
                         for (const call of [firstCall, ...calls]) {
+                            if (lastResult && lastResult.done) {
+                                throw 'Orchestrator has already completed';
+                            }
                             if (call.functionName && call.functionName !== currentCall.functionName) {
                                 throw `${call.functionName} does not match expected call of ${currentCall.functionName}`;
                             }
-                            result = generator.next(call.callFunction.apply(call.callFunction, currentCall.arguments));
+                            lastResult = generator.next(call.callFunction.apply(call.callFunction, currentCall.arguments));
                         }
                         return {
                             calls: calls.map(c => c.callFunction),
-                            result: result.value
+                            result: lastResult.value
                         };
                     },
                     getCalls() {
                         return calls;
                     }
                 };
+                addCallHandler(mockOrchestratorInstance, 'addCallActivity', 'callActivity');
+                addCallHandler(mockOrchestratorInstance, 'addCallActivityWithRetry', 'callActivityWithRetry');
+                addCallHandler(mockOrchestratorInstance, 'addCallEntity', 'callEntity');
+                addCallHandler(mockOrchestratorInstance, 'addCallSubOrchestrator', 'callSubOrchestrator');
+                addCallHandler(mockOrchestratorInstance, 'addCallSubOrchestratorWithRetry', 'callSubOrchestratorWithRetry');
+                addCallHandler(mockOrchestratorInstance, 'addCallHttp', 'callHttp');
+                addCallHandler(mockOrchestratorInstance, 'addContinueAsNew', 'continueAsNew');
+                addCallHandler(mockOrchestratorInstance, 'addCreateTimer', 'createTimer');
+                addCallHandler(mockOrchestratorInstance, 'addWaitForExternalEvent', 'waitForExternalEvent');
+                addCallHandler(mockOrchestratorInstance, 'addTaskAll', 'Task.all');
+                addCallHandler(mockOrchestratorInstance, 'addTaskAny', 'Task.any');
+                return mockOrchestratorInstance;
             }
         };
     }
